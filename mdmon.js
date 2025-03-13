@@ -1,7 +1,7 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import os from 'os';
-import { execSync } from 'child_process';
+const {express} = require("express")
+const {dotenv} =require("dotenv");
+const {os} = require("os");
+const { execSync } = require('child_process');
 
 dotenv.config();
 
