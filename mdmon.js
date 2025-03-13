@@ -83,6 +83,9 @@ app.post('/add-user', authenticate, (req, res) => {
     res.json({ message: addUser(username, password) });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT,"0.0.0.0",() => {
     console.log(`Server running on port ${PORT}`);
 });
+
+
+// 348u4b3948374937827892
