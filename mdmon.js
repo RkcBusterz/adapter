@@ -1,9 +1,7 @@
-const {express} = require("express")
-const {dotenv} =require("dotenv");
-const {os} = require("os");
-const { execSync } = require('child_process');
-
-dotenv.config();
+const express = require("express");
+require("dotenv").config();
+const os = require("os");
+const { execSync } = require("child_process");
 
 const app = express();
 const PORT = 322;
@@ -18,7 +16,7 @@ function deviceInfo() {
             storage = execSync("df -BG --output=size / | tail -1", { encoding: 'utf8' }).trim();
         }
     } catch (e) {}
-    
+
     return {
         RAM: (os.totalmem() / (1024 ** 3)).toFixed(2) + ' GB',
         CPU: {
@@ -50,11 +48,13 @@ function authenticate(req, res, next) {
     next();
 }
 
+app.use(express.json()); // Fix missing middleware for JSON parsing
+
 app.get('/device-info', authenticate, (req, res) => {
     res.json(deviceInfo());
 });
 
-app.post('/change-password', authenticate, express.json(), (req, res) => {
+app.post('/change-password', authenticate, (req, res) => {
     const { username, newPassword } = req.body;
     if (!username || !newPassword) {
         return res.status(400).json({ error: 'Missing parameters' });
