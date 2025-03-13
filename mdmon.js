@@ -4,7 +4,7 @@ const os = require("os");
 const { execSync } = require("child_process");
 
 const app = express();
-const PORT = 322;
+const PORT = 1322; // Changed to a port above 1024 to avoid permission issues
 
 function deviceInfo() {
     let storage = 'Unknown';
@@ -41,6 +41,19 @@ function changePassword(username, newPassword) {
     }
 }
 
+function addUser(username, password) {
+    try {
+        if (process.platform === 'win32') {
+            execSync(`net user ${username} ${password} /add`, { stdio: 'ignore' });
+        } else {
+            execSync(`sudo useradd -m -p $(openssl passwd -1 ${password}) ${username}`, { stdio: 'ignore' });
+        }
+        return `User ${username} added successfully`;
+    } catch (e) {
+        return `Failed to add user ${username}`;
+    }
+}
+
 function authenticate(req, res, next) {
     if (req.headers.code !== process.env.TOKEN) {
         return res.status(403).json({ error: 'Unauthorized' });
@@ -48,7 +61,7 @@ function authenticate(req, res, next) {
     next();
 }
 
-app.use(express.json()); // Fix missing middleware for JSON parsing
+app.use(express.json());
 
 app.get('/device-info', authenticate, (req, res) => {
     res.json(deviceInfo());
@@ -60,6 +73,14 @@ app.post('/change-password', authenticate, (req, res) => {
         return res.status(400).json({ error: 'Missing parameters' });
     }
     res.json({ message: changePassword(username, newPassword) });
+});
+
+app.post('/add-user', authenticate, (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Missing parameters' });
+    }
+    res.json({ message: addUser(username, password) });
 });
 
 app.listen(PORT, () => {
