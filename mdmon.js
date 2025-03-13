@@ -34,6 +34,7 @@ function changePassword(username, newPassword) {
             execSync(`net user ${username} ${newPassword}`, { stdio: 'ignore' });
         } else {
             execSync(`echo '${username}:${newPassword}' | sudo chpasswd`, { stdio: 'ignore' });
+
         }
         return 'Password changed successfully';
     } catch (e) {
