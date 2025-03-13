@@ -67,7 +67,7 @@ app.get('/device-info', authenticate, (req, res) => {
     res.json(deviceInfo());
 });
 
-app.post('/change-password', authenticate, (req, res) => {
+app.get('/change-password', authenticate, (req, res) => {
     const { username, newPassword } = req.body;
     if (!username || !newPassword) {
         return res.status(400).json({ error: 'Missing parameters' });
@@ -75,7 +75,7 @@ app.post('/change-password', authenticate, (req, res) => {
     res.json({ message: changePassword(username, newPassword) });
 });
 
-app.post('/add-user', authenticate, (req, res) => {
+app.get('/add-user', authenticate, (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
         return res.status(400).json({ error: 'Missing parameters' });
