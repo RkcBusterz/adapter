@@ -93,6 +93,23 @@ app.get('/restart', authenticate, (req, res) => {
     exec("sudo reboot");
 });
 
+app.get('/cpu-usage', authenticate, (req, res) => {
+    try {
+        const cpuUsage = execSync("top -bn1 | grep 'Cpu(s)'", { encoding: "utf8" });
+        res.json({ cpuUsage: cpuUsage.trim() });
+    } catch (e) {
+        res.status(500).json({ error: "Failed to get CPU usage" });
+    }
+});
+
+app.get('/ram-usage', authenticate, (req, res) => {
+    try {
+        const ramUsage = execSync("free -h", { encoding: "utf8" });
+        res.json({ ramUsage: ramUsage.trim() });
+    } catch (e) {
+        res.status(500).json({ error: "Failed to get RAM usage" });
+    }
+});
 
 
 
