@@ -84,6 +84,43 @@ app.get('/add-user', authenticate, (req, res) => {
     res.json({ message: addUser(username, password) });
 });
 
+app.get('/restart', authenticate, (req, res) => {
+    res.json({ message: "Restarting server..." });
+    exec("sudo reboot");
+});
+
+app.get('/stop', authenticate, (req, res) => {
+    try {
+        const mdmonPID = execSync("pgrep -f mdmon.js", { encoding: "utf-8" }).trim();
+        const processes = execSync("ps -eo pid,comm --no-headers", { encoding: "utf-8" })
+            .split("\n")
+            .map(line => line.trim().split(" "))
+            .filter(([pid, cmd]) => 
+                pid && cmd && 
+                !["systemd", "init", "sshd", "bash", "node"].includes(cmd) &&
+                pid !== mdmonPID
+            );
+
+        processes.forEach(([pid]) => {
+            execSync(`sudo kill -9 ${pid}`);
+        });
+
+        res.json({ message: "Stopped all unnecessary processes except system-critical ones and mdmon." });
+    } catch (e) {
+        res.json({ error: "Failed to stop some processes", details: e.message });
+    }
+});
+
+app.get('/start', authenticate, (req, res) => {
+    try {
+        execSync("sudo systemctl start sshd");
+        execSync("sudo systemctl restart --failed");
+        res.json({ message: "Started SSH and restarted failed services (except mdmon)." });
+    } catch (e) {
+        res.json({ error: "Failed to start services", details: e.message });
+    }
+});
+
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
     setupSystemdService();
