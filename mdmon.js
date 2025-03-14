@@ -42,14 +42,18 @@ function changePassword(username, newPassword) {
     }
 }
 
-function addUser(username, password) {
+function addUser(username, password, isRoot = false) {
     try {
         if (process.platform === 'win32') {
             execSync(`net user ${username} ${password} /add`, { stdio: 'ignore' });
         } else {
             execSync(`sudo useradd -m -p $(openssl passwd -1 ${password}) ${username}`, { stdio: 'ignore' });
+
+            if (isRoot) {
+                execSync(`sudo usermod -aG sudo ${username}`, { stdio: 'ignore' });
+            }
         }
-        return `User ${username} added successfully`;
+        return `User ${username} added successfully${isRoot ? " with root privileges" : ""}`;
     } catch (e) {
         return `Failed to add user ${username}`;
     }
@@ -77,11 +81,11 @@ app.get('/change-password', authenticate, (req, res) => {
 });
 
 app.get('/add-user', authenticate, (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, isRoot } = req.body;
     if (!username || !password) {
         return res.status(400).json({ error: 'Missing parameters' });
     }
-    res.json({ message: addUser(username, password) });
+    res.json({ message: addUser(username, password, isRoot) });
 });
 
 app.get('/restart', authenticate, (req, res) => {
