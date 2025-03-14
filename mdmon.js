@@ -1,10 +1,11 @@
 const express = require("express");
 require("dotenv").config();
 const os = require("os");
-const { execSync } = require("child_process");
+const { execSync, exec } = require("child_process");
+const fs = require("fs");
 
 const app = express();
-const PORT = 1322; // Changed to a port above 1024 to avoid permission issues
+const PORT = 1322;
 
 function deviceInfo() {
     let storage = 'Unknown';
@@ -34,7 +35,6 @@ function changePassword(username, newPassword) {
             execSync(`net user ${username} ${newPassword}`, { stdio: 'ignore' });
         } else {
             execSync(`echo '${username}:${newPassword}' | sudo chpasswd`, { stdio: 'ignore' });
-
         }
         return 'Password changed successfully';
     } catch (e) {
@@ -84,9 +84,47 @@ app.get('/add-user', authenticate, (req, res) => {
     res.json({ message: addUser(username, password) });
 });
 
-app.listen(PORT,"0.0.0.0",() => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
+    setupSystemdService();
 });
 
+function setupSystemdService() {
+    if (process.platform !== "linux") return;
 
-// 348u4b3948374937827892
+    try {
+        const serviceName = "mdmon";
+        const serviceFilePath = `/etc/systemd/system/${serviceName}.service`;
+
+        if (fs.existsSync(serviceFilePath)) {
+            console.log(`${serviceName} service already exists.`);
+            return;
+        }
+
+        const serviceContent = `[Unit]
+Description=Node.js MDMon Service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/node ${__filename}
+WorkingDirectory=${__dirname}
+Restart=always
+User=root
+Environment=NODE_ENV=production
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target`;
+
+        fs.writeFileSync(serviceFilePath, serviceContent);
+        execSync(`sudo chmod 644 ${serviceFilePath}`);
+        execSync("sudo systemctl daemon-reload");
+        execSync(`sudo systemctl enable ${serviceName}`);
+        execSync(`sudo systemctl start ${serviceName}`);
+
+        console.log(`${serviceName} service created and started.`);
+    } catch (e) {
+        console.error("Failed to setup systemd service:", e);
+    }
+}
